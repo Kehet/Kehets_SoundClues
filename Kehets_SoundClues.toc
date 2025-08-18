@@ -1,0 +1,10 @@
+## Interface: 50500
+## Title: |cFF009900Kehet's|r SoundClues
+## Notes: Plays sound when someone dies
+## Author: Kehet
+## Version: 1.0
+## DefaultState: Enabled
+## X-Embeds: Ace3
+## X-LoadOn-Always: delayed
+
+Kehets_SoundClues.lua
