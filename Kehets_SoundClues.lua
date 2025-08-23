@@ -6,7 +6,11 @@ local soundFiles = {
     TANK = "Sound\\interface\\igQuestFailed.ogg",
 }
 
-local DRINK_SPELL_ID = 430
+local DRINK_SPELL_ID = {
+    10250, 25696, 26261, 26402, 26473, 26475, 30024, 46755, 57073, 61830, 64356, 66041, 69176, 72623, 87958, 87959,
+    92736, 92797, 92800, 92803, 104262, 104269, 105230, 105590, 114731, 130335, 130336, 130337, 130338, 130339,
+    130340, 130341, 1216892, 43155, 118359, 104270
+}
 
 function SoundClues:OnEnable()
     self:Print("Enabled")
@@ -96,9 +100,11 @@ function SoundClues:OnUnitAura(unit)
     if UnitInParty(unit) or UnitInRaid(unit) then
         for i = 1, 40 do
             local auraId = select(10, UnitAura(unit, i))
-            if auraId == DRINK_SPELL_ID then
-                PlaySoundFile("Sound\\Creature\\MillhouseManastorm\\TEMPEST_Millhouse_Drinks01.ogg", "Master")
-                break
+            for _, drinkSpellId in ipairs(DRINK_SPELL_ID) do
+                if auraId == drinkSpellId then
+                    PlaySoundFile("Sound\\Creature\\MillhouseManastorm\\TEMPEST_Millhouse_Drinks01.ogg", "Master")
+                    return
+                end
             end
         end
     end
