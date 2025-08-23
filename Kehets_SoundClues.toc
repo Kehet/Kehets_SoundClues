@@ -2,7 +2,7 @@
 ## Title: |cFF009900Kehet's|r SoundClues
 ## Notes: Plays sound when someone dies
 ## Author: Kehet
-## Version: 1.0
+## Version: 1.1.0
 ## DefaultState: Enabled
 ## RequiredDeps: Ace3
 ## X-Wago-ID: EGPXYRG1
