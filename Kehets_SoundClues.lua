@@ -15,7 +15,9 @@ local DRINK_SPELL_ID = {
 function SoundClues:OnEnable()
     self:Print("Enabled")
     self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEventUnfiltered")
-    self:RegisterEvent("UNIT_AURA", "OnUnitAura")
+    if self.db.profile.drinkingActive then
+        self:RegisterEvent("UNIT_AURA", "OnUnitAura")
+    end
 end
 
 function SoundClues:OnDisable()
@@ -62,14 +64,27 @@ function SoundClues:OnCombatLogEventUnfiltered()
                 roleText = "Tank"
             end
 
-            -- Send chat message
             local message = string.format("%s (%s) has died!", coloredName, roleText)
             self:Print(message)
 
-            if role and soundFiles[role] then
-                PlaySoundFile(soundFiles[role], "Master")
-            else
-                PlaySoundFile(soundFiles["DAMAGER"], "Master")
+            local shouldPlaySound = false
+
+            if role == "TANK" and self.db.profile.tankActive then
+                shouldPlaySound = true
+            elseif role == "HEALER" and self.db.profile.healerActive then
+                shouldPlaySound = true
+            elseif role == "DAMAGER" and self.db.profile.dpsActive then
+                shouldPlaySound = true
+            elseif (not role or not soundFiles[role]) and self.db.profile.unknownActive then
+                shouldPlaySound = true
+            end
+
+            if shouldPlaySound then
+                if role and soundFiles[role] then
+                    PlaySoundFile(soundFiles[role], "Master")
+                else
+                    PlaySoundFile(soundFiles["DAMAGER"], "Master")
+                end
             end
         end
     end
@@ -107,5 +122,119 @@ function SoundClues:OnUnitAura(unit)
                 end
             end
         end
+    end
+end
+
+local options = {
+    name = "SoundClues",
+    handler = SoundClues,
+    type = "group",
+    args = {
+        tankActive = {
+            type = "toggle",
+            name = "Enable death alert for tank",
+            get = "IsTankActive",
+            set = "ToggleTankActive",
+            width = "full"
+        },
+        healerActive = {
+            type = "toggle",
+            name = "Enable death alert for healer",
+            get = "IsHealerActive",
+            set = "ToggleHealerActive",
+            width = "full"
+        },
+        dpsActive = {
+            type = "toggle",
+            name = "Enable death alert for DPS",
+            get = "IsDpsActive",
+            set = "ToggleDpsActive",
+            width = "full"
+        },
+        unknownActive = {
+            type = "toggle",
+            name = "Enable death alert for unknown roles",
+            get = "IsUnknownActive",
+            set = "ToggleUnknownActive",
+            width = "full"
+        },
+        drinkingActive = {
+            type = "toggle",
+            name = "Enable healer drinking alert",
+            get = "IsDrinkingActive",
+            set = "ToggleDrinkingActive",
+            width = "full"
+        },
+    },
+}
+
+function SoundClues:IsTankActive(info)
+    return self.db.profile.tankActive
+end
+
+function SoundClues:ToggleTankActive(info, value)
+    self.db.profile.tankActive = value
+end
+
+function SoundClues:IsHealerActive(info)
+    return self.db.profile.healerActive
+end
+
+function SoundClues:ToggleHealerActive(info, value)
+    self.db.profile.healerActive = value
+end
+
+function SoundClues:IsDpsActive(info)
+    return self.db.profile.dpsActive
+end
+
+function SoundClues:ToggleDpsActive(info, value)
+    self.db.profile.dpsActive = value
+end
+
+function SoundClues:IsUnknownActive(info)
+    return self.db.profile.unknownActive
+end
+
+function SoundClues:ToggleUnknownActive(info, value)
+    self.db.profile.unknownActive = value
+end
+
+function SoundClues:IsDrinkingActive(info)
+    return self.db.profile.drinkingActive
+end
+
+function SoundClues:ToggleDrinkingActive(info, value)
+    self.db.profile.drinkingActive = value
+    if value then
+        self:RegisterEvent("UNIT_AURA", "OnUnitAura")
+    else
+        self:UnregisterEvent("UNIT_AURA")
+    end
+end
+
+local defaults = {
+    profile = {
+        tankActive = true,
+        healerActive = true,
+        dpsActive = true,
+        unknownActive = true,
+        drinkingActive = true,
+    },
+}
+
+function SoundClues:OnInitialize()
+    self.db = LibStub("AceDB-3.0"):New("SoundCluesDB", defaults, true)
+    LibStub("AceConfig-3.0"):RegisterOptionsTable("SoundClues", options)
+    self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("SoundClues", "SoundClues")
+    self:RegisterChatCommand("sc", "SlashCommand")
+    self:RegisterChatCommand("soundclues", "SlashCommand")
+end
+
+function SoundClues:SlashCommand(msg)
+    if not msg or msg:trim() == "" then
+        Settings.OpenToCategory(self.optionsFrame.name)
+    else
+        self:Print("hello there!")
     end
 end

@@ -6,5 +6,6 @@
 ## DefaultState: Enabled
 ## RequiredDeps: Ace3
 ## X-Wago-ID: EGPXYRG1
+## SavedVariables: SoundCluesDB
 
 Kehets_SoundClues.lua
