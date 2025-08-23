@@ -36,25 +36,35 @@ function SoundClues:OnCombatLogEventUnfiltered()
         return
     end
 
-    self:Print("unit is unit " .. unit)
-
     if UnitInParty(unit) or UnitInRaid(unit) then
-
-        self:Print("Is in raid or party")
-
         if unit then
             local role = UnitGroupRolesAssigned(unit)
+            local playerName = UnitName(unit)
+            local _, className = UnitClass(unit)
 
-            self:Print("Role is " .. role)
+            -- Get class color
+            local classColor = RAID_CLASS_COLORS[className]
+            local coloredName = playerName
+            if classColor then
+                coloredName = string.format("|cFF%02x%02x%02x%s|r",
+                    classColor.r * 255, classColor.g * 255, classColor.b * 255, playerName)
+            end
+
+            -- Convert role to display text
+            local roleText = "DPS"
+            if role == "HEALER" then
+                roleText = "Healer"
+            elseif role == "TANK" then
+                roleText = "Tank"
+            end
+
+            -- Send chat message
+            local message = string.format("%s (%s) has died!", coloredName, roleText)
+            self:Print(message)
 
             if role and soundFiles[role] then
-
-                self:Print("Play sound " .. soundFiles[role])
-
                 PlaySoundFile(soundFiles[role], "Master")
             else
-                self:Print("Player has no role")
-
                 PlaySoundFile(soundFiles["DAMAGER"], "Master")
             end
         end
