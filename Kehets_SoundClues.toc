@@ -4,7 +4,7 @@
 ## Author: Kehet
 ## Version: 1.0
 ## DefaultState: Enabled
-## X-Embeds: Ace3
-## X-LoadOn-Always: delayed
+## RequiredDeps: Ace3
+## X-Wago-ID: EGPXYRG1
 
 Kehets_SoundClues.lua
