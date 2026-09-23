@@ -107,25 +107,38 @@ function GetUnitFromGUID(guid)
     return nil
 end
 
-function SoundClues:OnUnitAura(unit)
-    if UnitAffectingCombat("player") then
-        return
-    end
+-- GUIDs of healers currently drinking, so each drink plays the sound only once
+local drinkingHealers = {}
 
+local function IsDrinking(unit)
+    for i = 1, 40 do
+        local aura = C_UnitAuras.GetAuraDataByIndex(unit, i, "HELPFUL")
+        if not aura then
+            return false
+        end
+        if tContains(DRINK_SPELL_ID, aura.spellId) then
+            return true
+        end
+    end
+    return false
+end
+
+function SoundClues:OnUnitAura(event, unit)
     if UnitGroupRolesAssigned(unit) ~= "HEALER" then
         return
     end
 
-    if UnitInParty(unit) or UnitInRaid(unit) then
-        for i = 1, 40 do
-            local auraId = select(10, UnitAura(unit, i))
-            for _, drinkSpellId in ipairs(DRINK_SPELL_ID) do
-                if auraId == drinkSpellId then
-                    PlaySoundFile("Sound\\Creature\\MillhouseManastorm\\TEMPEST_Millhouse_Drinks01.ogg", "Master")
-                    return
-                end
-            end
-        end
+    if not (UnitInParty(unit) or UnitInRaid(unit)) then
+        return
+    end
+
+    local guid = UnitGUID(unit)
+    local drinking = IsDrinking(unit)
+    local wasDrinking = drinkingHealers[guid]
+    drinkingHealers[guid] = drinking or nil
+
+    if drinking and not wasDrinking and not UnitAffectingCombat("player") then
+        PlaySoundFile("Sound\\Creature\\MillhouseManastorm\\TEMPEST_Millhouse_Drinks01.ogg", "Master")
     end
 end
 
