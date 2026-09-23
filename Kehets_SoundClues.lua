@@ -250,7 +250,8 @@ end
 
 function SoundClues:SlashCommand(msg)
     if not msg or msg:trim() == "" then
-        Settings.OpenToCategory(self.optionsFrame.name)
+        -- Settings.OpenToCategory is protected on this client, so open a standalone window instead
+        LibStub("AceConfigDialog-3.0"):Open("SoundClues")
     else
         self:Print("hello there!")
     end
