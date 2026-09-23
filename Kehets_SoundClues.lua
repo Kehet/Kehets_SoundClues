@@ -112,6 +112,10 @@ function SoundClues:OnUnitAura(unit)
         return
     end
 
+    if UnitGroupRolesAssigned(unit) ~= "HEALER" then
+        return
+    end
+
     if UnitInParty(unit) or UnitInRaid(unit) then
         for i = 1, 40 do
             local auraId = select(10, UnitAura(unit, i))
