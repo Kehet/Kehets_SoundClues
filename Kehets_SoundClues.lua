@@ -26,7 +26,7 @@ function SoundClues:OnDisable()
 end
 
 function SoundClues:OnCombatLogEventUnfiltered()
-    local _, eventType, _, _, _, _, _, destGUID = CombatLogGetCurrentEventInfo()
+    local _, eventType, _, _, _, _, _, destGUID = C_CombatLog.GetCurrentEventInfo()
 
     if eventType ~= "UNIT_DIED" then
         return
@@ -107,30 +107,43 @@ function GetUnitFromGUID(guid)
     return nil
 end
 
-function SoundClues:OnUnitAura(unit)
-    if UnitAffectingCombat("player") then
-        return
-    end
+-- GUIDs of healers currently drinking, so each drink plays the sound only once
+local drinkingHealers = {}
 
+local function IsDrinking(unit)
+    for i = 1, 40 do
+        local aura = C_UnitAuras.GetAuraDataByIndex(unit, i, "HELPFUL")
+        if not aura then
+            return false
+        end
+        if tContains(DRINK_SPELL_ID, aura.spellId) then
+            return true
+        end
+    end
+    return false
+end
+
+function SoundClues:OnUnitAura(event, unit)
     if UnitGroupRolesAssigned(unit) ~= "HEALER" then
         return
     end
 
-    if UnitInParty(unit) or UnitInRaid(unit) then
-        for i = 1, 40 do
-            local auraId = select(10, UnitAura(unit, i))
-            for _, drinkSpellId in ipairs(DRINK_SPELL_ID) do
-                if auraId == drinkSpellId then
-                    PlaySoundFile("Sound\\Creature\\MillhouseManastorm\\TEMPEST_Millhouse_Drinks01.ogg", "Master")
-                    return
-                end
-            end
-        end
+    if not (UnitInParty(unit) or UnitInRaid(unit)) then
+        return
+    end
+
+    local guid = UnitGUID(unit)
+    local drinking = IsDrinking(unit)
+    local wasDrinking = drinkingHealers[guid]
+    drinkingHealers[guid] = drinking or nil
+
+    if drinking and not wasDrinking and not UnitAffectingCombat("player") then
+        PlaySoundFile("Sound\\Creature\\MillhouseManastorm\\TEMPEST_Millhouse_Drinks01.ogg", "Master")
     end
 end
 
 local options = {
-    name = "SoundClues",
+    name = "Kehet's SoundClues",
     handler = SoundClues,
     type = "group",
     args = {
@@ -230,14 +243,15 @@ local defaults = {
 function SoundClues:OnInitialize()
     self.db = LibStub("AceDB-3.0"):New("SoundCluesDB", defaults, true)
     LibStub("AceConfig-3.0"):RegisterOptionsTable("SoundClues", options)
-    self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("SoundClues", "SoundClues")
+    self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("SoundClues", "Kehet's SoundClues")
     self:RegisterChatCommand("sc", "SlashCommand")
     self:RegisterChatCommand("soundclues", "SlashCommand")
 end
 
 function SoundClues:SlashCommand(msg)
     if not msg or msg:trim() == "" then
-        Settings.OpenToCategory(self.optionsFrame.name)
+        -- Settings.OpenToCategory is protected on this client, so open a standalone window instead
+        LibStub("AceConfigDialog-3.0"):Open("SoundClues")
     else
         self:Print("hello there!")
     end
