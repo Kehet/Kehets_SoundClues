@@ -26,7 +26,7 @@ function SoundClues:OnDisable()
 end
 
 function SoundClues:OnCombatLogEventUnfiltered()
-    local _, eventType, _, _, _, _, _, destGUID = CombatLogGetCurrentEventInfo()
+    local _, eventType, _, _, _, _, _, destGUID = C_CombatLog.GetCurrentEventInfo()
 
     if eventType ~= "UNIT_DIED" then
         return
