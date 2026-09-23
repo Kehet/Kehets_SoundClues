@@ -143,7 +143,7 @@ function SoundClues:OnUnitAura(event, unit)
 end
 
 local options = {
-    name = "SoundClues",
+    name = "Kehet's SoundClues",
     handler = SoundClues,
     type = "group",
     args = {
@@ -243,7 +243,7 @@ local defaults = {
 function SoundClues:OnInitialize()
     self.db = LibStub("AceDB-3.0"):New("SoundCluesDB", defaults, true)
     LibStub("AceConfig-3.0"):RegisterOptionsTable("SoundClues", options)
-    self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("SoundClues", "SoundClues")
+    self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("SoundClues", "Kehet's SoundClues")
     self:RegisterChatCommand("sc", "SlashCommand")
     self:RegisterChatCommand("soundclues", "SlashCommand")
 end
