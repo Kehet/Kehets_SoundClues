@@ -2,10 +2,10 @@
 ## Title: |cFF009900Kehet's|r SoundClues
 ## Notes: Plays sound when someone dies
 ## Author: Kehet
-## Version: 1.1.0
+## Version: @project-version@
 ## DefaultState: Enabled
 ## RequiredDeps: Ace3
-## X-Wago-ID: EGPXYRG1
+## X-Curse-Project-ID: 1711310
 ## SavedVariables: SoundCluesDB
 
 Kehets_SoundClues.lua
