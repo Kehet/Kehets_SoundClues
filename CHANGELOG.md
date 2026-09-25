@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/Kehet/Kehets_SoundClues/compare/1.2.0...1.2.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* embed the Ace3 libraries the addon uses ([1591170](https://github.com/Kehet/Kehets_SoundClues/commit/159117002bea8bae5ba63c7168d086c2f2477caf))
+
 ## [1.2.0](https://github.com/Kehet/Kehets_SoundClues/compare/1.1.0...1.2.0) (2026-09-25)
 
 
