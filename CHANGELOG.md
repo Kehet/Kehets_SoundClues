@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/Kehet/Kehets_SoundClues/compare/1.2.1...1.3.0) (2026-09-27)
+
+
+### Features
+
+* list slash commands in the enabled message ([#9](https://github.com/Kehet/Kehets_SoundClues/issues/9)) ([f80d1df](https://github.com/Kehet/Kehets_SoundClues/commit/f80d1df88e8b655018341004783ee0de3fa09e94))
+
 ## [1.2.1](https://github.com/Kehet/Kehets_SoundClues/compare/1.2.0...1.2.1) (2026-09-25)
 
 
