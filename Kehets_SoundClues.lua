@@ -13,7 +13,7 @@ local DRINK_SPELL_ID = {
 }
 
 function SoundClues:OnEnable()
-    self:Print("Enabled")
+    self:Print("Enabled - Use /sc or /soundclues to open the settings")
     self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEventUnfiltered")
     if self.db.profile.drinkingActive then
         self:RegisterEvent("UNIT_AURA", "OnUnitAura")
