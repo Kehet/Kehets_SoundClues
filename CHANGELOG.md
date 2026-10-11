@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.0](https://github.com/Kehet/Kehets_SoundClues/compare/1.3.0...1.4.0) (2026-10-11)
+
+
+### Features
+
+* add message settings for the death and login messages ([#16](https://github.com/Kehet/Kehets_SoundClues/issues/16)) ([4b934e9](https://github.com/Kehet/Kehets_SoundClues/commit/4b934e943696ee9cfa71e06826baae2af44a180e))
+
 ## [1.3.0](https://github.com/Kehet/Kehets_SoundClues/compare/1.2.1...1.3.0) (2026-09-27)
 
 
