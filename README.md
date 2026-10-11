@@ -32,6 +32,13 @@ You can turn each alert on or off:
 
 All alerts are on by default.
 
+The Messages group has the login message and the death messages in chat. Each message has these settings:
+
+- Show: turn the message on or off.
+- Show in: one or more of the chat windows, the error frame, the raid warning frame, the boss emote frame and the floating combat text. Parrot, MikScrollingBattleText, BigWigs and DBM outputs are listed while those addons are loaded.
+
+Mute all messages turns all of them off. Answers to slash commands always print.
+
 ## Requirements
 
 - World of Warcraft: Mists of Pandaria Classic
