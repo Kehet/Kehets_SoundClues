@@ -1,4 +1,18 @@
-local SoundClues = LibStub("AceAddon-3.0"):NewAddon("Kehet's SoundClues", "AceConsole-3.0", "AceEvent-3.0")
+local SoundClues = LibStub("AceAddon-3.0"):NewAddon("Kehet's SoundClues", "AceConsole-3.0", "AceEvent-3.0", "LibKehetsVerbosity-1.0")
+
+-- Messages the player can turn off or move in the Messages settings
+SoundClues:RegisterMessageTypes({
+    banner = {
+        name = "Login message",
+        desc = "The line that says the addon is enabled.",
+        order = 1,
+    },
+    death = {
+        name = "Death messages",
+        desc = "The line that says which group member died. The death alert sounds have their own settings.",
+        order = 2,
+    },
+})
 
 local soundFiles = {
     DAMAGER = "Sound\\interface\\iCreateCharacterA.ogg",
@@ -13,7 +27,7 @@ local DRINK_SPELL_ID = {
 }
 
 function SoundClues:OnEnable()
-    self:Print("Enabled - Use /sc or /soundclues to open the settings")
+    self:Notify("banner", "Enabled - Use /sc or /soundclues to open the settings")
     self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEventUnfiltered")
     if self.db.profile.drinkingActive then
         self:RegisterEvent("UNIT_AURA", "OnUnitAura")
@@ -65,7 +79,7 @@ function SoundClues:OnCombatLogEventUnfiltered()
             end
 
             local message = string.format("%s (%s) has died!", coloredName, roleText)
-            self:Print(message)
+            self:Notify("death", message)
 
             local shouldPlaySound = false
 
@@ -184,6 +198,10 @@ local options = {
         },
     },
 }
+
+options.args.messages = SoundClues:GetMessageOptions()
+options.args.messages.inline = true
+options.args.messages.order = 200
 
 function SoundClues:IsTankActive(info)
     return self.db.profile.tankActive
