@@ -15,8 +15,12 @@ globals = {
 read_globals = {
     "C_CombatLog",
     "C_UnitAuras",
+    "GetNumGroupMembers",
+    "GetNumSubgroupMembers",
+    "IsInGroup",
     "IsInRaid",
     "LibStub",
+    "PlaySound",
     "PlaySoundFile",
     "RAID_CLASS_COLORS",
     "tContains",
@@ -28,4 +32,5 @@ read_globals = {
     "UnitInRaid",
     "UnitIsFeignDeath",
     "UnitName",
+    "UNKNOWNOBJECT",
 }
