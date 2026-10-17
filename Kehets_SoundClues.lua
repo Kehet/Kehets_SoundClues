@@ -14,7 +14,7 @@ SoundClues:RegisterMessageTypes({
     },
     leave = {
         name = "Leave messages",
-        desc = "The line that says which player left the group. The leave alert sound has its own setting.",
+        desc = "The line that says which player left the group. It shows only when the leave alert settings allow the alert.",
         order = 3,
     },
 })
@@ -169,20 +169,45 @@ function SoundClues:OnGroupRosterUpdate()
         return
     end
 
+    -- The roster is still kept up to date while the alert is off, so turning it on does not report old leaves
+    local previous = groupMembers
+    groupMembers = roster
+    if not self:IsLeaveAlertWanted() then
+        return
+    end
+
     local someoneLeft = false
-    for guid, member in pairs(groupMembers) do
+    for guid, member in pairs(previous) do
         if not roster[guid] then
             someoneLeft = true
             self:Notify("leave", string.format("%s has left the group.", ColorName(member.name, member.className)))
         end
     end
 
-    if someoneLeft and self.db.profile.leaveActive then
+    if someoneLeft then
         -- SOUNDKIT.IG_PLAYER_INVITE_DECLINE, which is missing from the SOUNDKIT table on this client
         PlaySound(882, "Master")
     end
+end
 
-    groupMembers = roster
+function SoundClues:IsLeaveAlertWanted()
+    local profile = self.db.profile
+
+    if UnitAffectingCombat("player") then
+        if not profile.leaveInCombat then
+            return false
+        end
+    elseif not profile.leaveOutOfCombat then
+        return false
+    end
+
+    local _, instanceType = IsInInstance()
+    if instanceType == "pvp" or instanceType == "arena" then
+        return profile.leaveBattleground
+    elseif IsInRaid() then
+        return profile.leaveRaid
+    end
+    return profile.leaveParty
 end
 
 -- GUIDs of healers currently drinking, so each drink plays the sound only once
@@ -260,12 +285,41 @@ local options = {
             set = "ToggleDrinkingActive",
             width = "full"
         },
-        leaveActive = {
-            type = "toggle",
-            name = "Enable alert when a player leaves the group",
-            get = "IsLeaveActive",
-            set = "ToggleLeaveActive",
-            width = "full"
+        leave = {
+            type = "group",
+            name = "Alert when a player leaves the group",
+            inline = true,
+            order = 150,
+            get = "GetLeaveOption",
+            set = "SetLeaveOption",
+            args = {
+                leaveInCombat = {
+                    type = "toggle",
+                    name = "In combat",
+                    order = 1,
+                },
+                leaveOutOfCombat = {
+                    type = "toggle",
+                    name = "Out of combat",
+                    order = 2,
+                },
+                leaveParty = {
+                    type = "toggle",
+                    name = "In a party",
+                    order = 3,
+                },
+                leaveRaid = {
+                    type = "toggle",
+                    name = "In a raid",
+                    order = 4,
+                },
+                leaveBattleground = {
+                    type = "toggle",
+                    name = "In a battleground or arena",
+                    order = 5,
+                    width = "double",
+                },
+            },
         },
     },
 }
@@ -319,12 +373,13 @@ function SoundClues:ToggleDrinkingActive(info, value)
     end
 end
 
-function SoundClues:IsLeaveActive(info)
-    return self.db.profile.leaveActive
+-- The leave toggles share these, keyed by the option name
+function SoundClues:GetLeaveOption(info)
+    return self.db.profile[info[#info]]
 end
 
-function SoundClues:ToggleLeaveActive(info, value)
-    self.db.profile.leaveActive = value
+function SoundClues:SetLeaveOption(info, value)
+    self.db.profile[info[#info]] = value
 end
 
 local defaults = {
@@ -334,7 +389,11 @@ local defaults = {
         dpsActive = true,
         unknownActive = true,
         drinkingActive = true,
-        leaveActive = true,
+        leaveInCombat = true,
+        leaveOutOfCombat = true,
+        leaveParty = true,
+        leaveRaid = true,
+        leaveBattleground = true,
     },
 }
 

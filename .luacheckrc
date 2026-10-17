@@ -18,6 +18,7 @@ read_globals = {
     "GetNumGroupMembers",
     "GetNumSubgroupMembers",
     "IsInGroup",
+    "IsInInstance",
     "IsInRaid",
     "LibStub",
     "PlaySound",
