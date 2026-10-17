@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.5.0](https://github.com/Kehet/Kehets_SoundClues/compare/1.4.0...1.5.0) (2026-10-17)
+
+
+### Features
+
+* alert when a player leaves the group ([#18](https://github.com/Kehet/Kehets_SoundClues/issues/18)) ([e176ce1](https://github.com/Kehet/Kehets_SoundClues/commit/e176ce1191360e91f4ca93343cee4e739926da13))
+* support Classic Era (interface 11509) ([#20](https://github.com/Kehet/Kehets_SoundClues/issues/20)) ([9b9b690](https://github.com/Kehet/Kehets_SoundClues/commit/9b9b690e705cba58390fb73df96c84570f943d54))
+
 ## [1.4.0](https://github.com/Kehet/Kehets_SoundClues/compare/1.3.0...1.4.0) (2026-10-11)
 
 
