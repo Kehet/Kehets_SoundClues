@@ -53,6 +53,7 @@ Mute all messages turns all of them off. Answers to slash commands always print.
 ## Requirements
 
 - World of Warcraft: Mists of Pandaria Classic
+- World of Warcraft: Classic Era
 - The [Ace3](https://www.curseforge.com/wow/addons/ace3) addon
 
 ## License
