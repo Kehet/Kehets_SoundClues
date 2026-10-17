@@ -12,6 +12,11 @@ SoundClues:RegisterMessageTypes({
         desc = "The line that says which group member died. The death alert sounds have their own settings.",
         order = 2,
     },
+    leave = {
+        name = "Leave messages",
+        desc = "The line that says which player left the group. It shows only when the leave alert settings allow the alert.",
+        order = 3,
+    },
 })
 
 local soundFiles = {
@@ -29,6 +34,8 @@ local DRINK_SPELL_ID = {
 function SoundClues:OnEnable()
     self:Notify("banner", "Enabled - Use /sc or /soundclues to open the settings")
     self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEventUnfiltered")
+    self:RegisterEvent("GROUP_ROSTER_UPDATE", "OnGroupRosterUpdate")
+    self:OnGroupRosterUpdate()
     if self.db.profile.drinkingActive then
         self:RegisterEvent("UNIT_AURA", "OnUnitAura")
     end
@@ -36,7 +43,16 @@ end
 
 function SoundClues:OnDisable()
     self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    self:UnregisterEvent("GROUP_ROSTER_UPDATE")
     self:UnregisterEvent("UNIT_AURA")
+end
+
+local function ColorName(name, className)
+    local classColor = RAID_CLASS_COLORS[className]
+    if not classColor then
+        return name
+    end
+    return string.format("|cFF%02x%02x%02x%s|r", classColor.r * 255, classColor.g * 255, classColor.b * 255, name)
 end
 
 function SoundClues:OnCombatLogEventUnfiltered()
@@ -61,14 +77,7 @@ function SoundClues:OnCombatLogEventUnfiltered()
             local role = UnitGroupRolesAssigned(unit)
             local playerName = UnitName(unit)
             local _, className = UnitClass(unit)
-
-            -- Get class color
-            local classColor = RAID_CLASS_COLORS[className]
-            local coloredName = playerName
-            if classColor then
-                coloredName = string.format("|cFF%02x%02x%02x%s|r",
-                    classColor.r * 255, classColor.g * 255, classColor.b * 255, playerName)
-            end
+            local coloredName = ColorName(playerName, className)
 
             -- Convert role to display text
             local roleText = "DPS"
@@ -119,6 +128,86 @@ function GetUnitFromGUID(guid)
     end
 
     return nil
+end
+
+-- Group members from the last roster update, by GUID, so a member can still be named after they leave
+local groupMembers = {}
+
+-- Returns nil while a member is not loaded yet, so a half-loaded roster does not look like people leaving
+local function ReadRoster()
+    local prefix, count = "party", GetNumSubgroupMembers()
+    if IsInRaid() then
+        prefix, count = "raid", GetNumGroupMembers()
+    end
+
+    local playerGUID = UnitGUID("player")
+    local roster = {}
+    for i = 1, count do
+        local unit = prefix .. i
+        local guid = UnitGUID(unit)
+        local name = UnitName(unit)
+        if not guid or not name or name == UNKNOWNOBJECT then
+            return nil
+        end
+        if guid ~= playerGUID then
+            local _, className = UnitClass(unit)
+            roster[guid] = { name = name, className = className }
+        end
+    end
+    return roster
+end
+
+function SoundClues:OnGroupRosterUpdate()
+    -- When the player leaves or the group disbands, nobody else left
+    if not IsInGroup() then
+        groupMembers = {}
+        return
+    end
+
+    local roster = ReadRoster()
+    if not roster then
+        return
+    end
+
+    -- The roster is still kept up to date while the alert is off, so turning it on does not report old leaves
+    local previous = groupMembers
+    groupMembers = roster
+    if not self:IsLeaveAlertWanted() then
+        return
+    end
+
+    local someoneLeft = false
+    for guid, member in pairs(previous) do
+        if not roster[guid] then
+            someoneLeft = true
+            self:Notify("leave", string.format("%s has left the group.", ColorName(member.name, member.className)))
+        end
+    end
+
+    if someoneLeft then
+        -- SOUNDKIT.IG_PLAYER_INVITE_DECLINE, which is missing from the SOUNDKIT table on this client
+        PlaySound(882, "Master")
+    end
+end
+
+function SoundClues:IsLeaveAlertWanted()
+    local profile = self.db.profile
+
+    if UnitAffectingCombat("player") then
+        if not profile.leaveInCombat then
+            return false
+        end
+    elseif not profile.leaveOutOfCombat then
+        return false
+    end
+
+    local _, instanceType = IsInInstance()
+    if instanceType == "pvp" or instanceType == "arena" then
+        return profile.leaveBattleground
+    elseif IsInRaid() then
+        return profile.leaveRaid
+    end
+    return profile.leaveParty
 end
 
 -- GUIDs of healers currently drinking, so each drink plays the sound only once
@@ -196,6 +285,42 @@ local options = {
             set = "ToggleDrinkingActive",
             width = "full"
         },
+        leave = {
+            type = "group",
+            name = "Alert when a player leaves the group",
+            inline = true,
+            order = 150,
+            get = "GetLeaveOption",
+            set = "SetLeaveOption",
+            args = {
+                leaveInCombat = {
+                    type = "toggle",
+                    name = "In combat",
+                    order = 1,
+                },
+                leaveOutOfCombat = {
+                    type = "toggle",
+                    name = "Out of combat",
+                    order = 2,
+                },
+                leaveParty = {
+                    type = "toggle",
+                    name = "In a party",
+                    order = 3,
+                },
+                leaveRaid = {
+                    type = "toggle",
+                    name = "In a raid",
+                    order = 4,
+                },
+                leaveBattleground = {
+                    type = "toggle",
+                    name = "In a battleground or arena",
+                    order = 5,
+                    width = "double",
+                },
+            },
+        },
     },
 }
 
@@ -248,6 +373,15 @@ function SoundClues:ToggleDrinkingActive(info, value)
     end
 end
 
+-- The leave toggles share these, keyed by the option name
+function SoundClues:GetLeaveOption(info)
+    return self.db.profile[info[#info]]
+end
+
+function SoundClues:SetLeaveOption(info, value)
+    self.db.profile[info[#info]] = value
+end
+
 local defaults = {
     profile = {
         tankActive = true,
@@ -255,6 +389,11 @@ local defaults = {
         dpsActive = true,
         unknownActive = true,
         drinkingActive = true,
+        leaveInCombat = true,
+        leaveOutOfCombat = true,
+        leaveParty = true,
+        leaveRaid = true,
+        leaveBattleground = true,
     },
 }
 
