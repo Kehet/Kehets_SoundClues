@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.1](https://github.com/Kehet/Kehets_SoundClues/compare/1.5.0...1.5.1) (2026-11-04)
+
+
+### Bug Fixes
+
+* upload releases to Wago ([#22](https://github.com/Kehet/Kehets_SoundClues/issues/22)) ([fa85643](https://github.com/Kehet/Kehets_SoundClues/commit/fa856434b0df1601b9d29ea16c457591df6e284f))
+
 ## [1.5.0](https://github.com/Kehet/Kehets_SoundClues/compare/1.4.0...1.5.0) (2026-10-17)
 
 
