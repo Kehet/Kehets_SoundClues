@@ -33,7 +33,8 @@ local DRINK_SPELL_ID = {
 
 function SoundClues:OnEnable()
     self:Notify("banner", "Enabled - Use /sc or /soundclues to open the settings")
-    self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", "OnCombatLogEventUnfiltered")
+    -- Deaths come from unit health, because WoW: Forever does not let addons register the combat log
+    self:RegisterEvent("UNIT_HEALTH", "OnUnitHealth")
     self:RegisterEvent("GROUP_ROSTER_UPDATE", "OnGroupRosterUpdate")
     self:OnGroupRosterUpdate()
     if self.db.profile.drinkingActive then
@@ -42,7 +43,7 @@ function SoundClues:OnEnable()
 end
 
 function SoundClues:OnDisable()
-    self:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+    self:UnregisterEvent("UNIT_HEALTH")
     self:UnregisterEvent("GROUP_ROSTER_UPDATE")
     self:UnregisterEvent("UNIT_AURA")
 end
@@ -55,23 +56,55 @@ local function ColorName(name, className)
     return string.format("|cFF%02x%02x%02x%s|r", classColor.r * 255, classColor.g * 255, classColor.b * 255, name)
 end
 
-function SoundClues:OnCombatLogEventUnfiltered()
-    local _, eventType, _, _, _, _, _, destGUID = C_CombatLog.GetCurrentEventInfo()
+-- Group members that are dead, by GUID, so a death is reported once and not again on each health update
+local deadMembers = {}
 
-    if eventType ~= "UNIT_DIED" then
+local function IsGroupUnit(unit)
+    return unit:match("^party%d$") ~= nil or unit:match("^raid%d+$") ~= nil
+end
+
+local function IsDead(unit)
+    return UnitIsDeadOrGhost(unit) and not UnitIsFeignDeath(unit)
+end
+
+-- Records who is dead now without alerting, so members that were already dead are not reported
+local function ReadDeadMembers()
+    deadMembers = {}
+    local prefix, count = "party", GetNumSubgroupMembers()
+    if IsInRaid() then
+        prefix, count = "raid", GetNumGroupMembers()
+    end
+    for i = 1, count do
+        local unit = prefix .. i
+        local guid = UnitGUID(unit)
+        if guid and IsDead(unit) then
+            deadMembers[guid] = true
+        end
+    end
+end
+
+function SoundClues:OnUnitHealth(event, unit)
+    if not IsGroupUnit(unit) then
         return
     end
 
-    local unit = GetUnitFromGUID(destGUID)
-
-    if unit == nil then
+    local guid = UnitGUID(unit)
+    if not guid then
         return
     end
 
-    if UnitIsFeignDeath(unit) then
+    local dead = IsDead(unit)
+    if dead == (deadMembers[guid] == true) then
         return
     end
+    deadMembers[guid] = dead or nil
 
+    if dead then
+        self:OnMemberDied(unit)
+    end
+end
+
+function SoundClues:OnMemberDied(unit)
     if UnitInParty(unit) or UnitInRaid(unit) then
         if unit then
             local role = UnitGroupRolesAssigned(unit)
@@ -113,23 +146,6 @@ function SoundClues:OnCombatLogEventUnfiltered()
     end
 end
 
-function GetUnitFromGUID(guid)
-    local units = {"party1", "party2", "party3", "party4"}
-    if IsInRaid() then
-        for i = 1, 40 do
-            table.insert(units, "raid"..i)
-        end
-    end
-
-    for _, unit in ipairs(units) do
-        if UnitGUID(unit) == guid then
-            return unit
-        end
-    end
-
-    return nil
-end
-
 -- Group members from the last roster update, by GUID, so a member can still be named after they leave
 local groupMembers = {}
 
@@ -158,6 +174,8 @@ local function ReadRoster()
 end
 
 function SoundClues:OnGroupRosterUpdate()
+    ReadDeadMembers()
+
     -- When the player leaves or the group disbands, nobody else left
     if not IsInGroup() then
         groupMembers = {}

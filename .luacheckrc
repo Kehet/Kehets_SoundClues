@@ -6,14 +6,8 @@ exclude_files = {
     "Libs/**",
 }
 
--- Globals the addon defines itself
-globals = {
-    "GetUnitFromGUID",
-}
-
 -- WoW API, FrameXML and libraries
 read_globals = {
-    "C_CombatLog",
     "C_UnitAuras",
     "GetNumGroupMembers",
     "GetNumSubgroupMembers",
@@ -31,6 +25,7 @@ read_globals = {
     "UnitGUID",
     "UnitInParty",
     "UnitInRaid",
+    "UnitIsDeadOrGhost",
     "UnitIsFeignDeath",
     "UnitName",
     "UNKNOWNOBJECT",
