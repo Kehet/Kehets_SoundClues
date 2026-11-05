@@ -31,6 +31,11 @@ local DRINK_SPELL_ID = {
     130340, 130341, 1216892, 43155, 118359, 104270
 }
 
+-- WoW: Forever hands out secret values that addons cannot compare, and has no issecretvalue on the other clients
+local function IsSecret(value)
+    return issecretvalue ~= nil and issecretvalue(value)
+end
+
 function SoundClues:OnEnable()
     self:Notify("banner", "Enabled - Use /sc or /soundclues to open the settings")
     -- Deaths come from unit health, because WoW: Forever does not let addons register the combat log
@@ -64,7 +69,11 @@ local function IsGroupUnit(unit)
 end
 
 local function IsDead(unit)
-    return UnitIsDeadOrGhost(unit) and not UnitIsFeignDeath(unit)
+    local dead, feigning = UnitIsDeadOrGhost(unit), UnitIsFeignDeath(unit)
+    if IsSecret(dead) or IsSecret(feigning) then
+        return false
+    end
+    return dead and not feigning
 end
 
 -- Records who is dead now without alerting, so members that were already dead are not reported
@@ -234,7 +243,7 @@ local drinkingHealers = {}
 local function IsDrinking(unit)
     for i = 1, 40 do
         local aura = C_UnitAuras.GetAuraDataByIndex(unit, i, "HELPFUL")
-        if not aura then
+        if not aura or IsSecret(aura.spellId) then
             return false
         end
         if tContains(DRINK_SPELL_ID, aura.spellId) then
@@ -245,11 +254,13 @@ local function IsDrinking(unit)
 end
 
 function SoundClues:OnUnitAura(event, unit)
-    if UnitGroupRolesAssigned(unit) ~= "HEALER" then
+    -- UNIT_AURA also fires for tokens like targettarget, whose role is a secret value in WoW: Forever
+    if not IsGroupUnit(unit) or not (UnitInParty(unit) or UnitInRaid(unit)) then
         return
     end
 
-    if not (UnitInParty(unit) or UnitInRaid(unit)) then
+    local role = UnitGroupRolesAssigned(unit)
+    if IsSecret(role) or role ~= "HEALER" then
         return
     end
 
