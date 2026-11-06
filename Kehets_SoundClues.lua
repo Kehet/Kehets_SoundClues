@@ -240,8 +240,23 @@ end
 -- GUIDs of healers currently drinking, so each drink plays the sound only once
 local drinkingHealers = {}
 
+-- WoW: Forever hides auras from addons at times, and reading them then is an error, so ask first
+local function CanReadAura(unit, index)
+    if not C_Secrets then
+        return true
+    end
+    if C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret() then
+        return false
+    end
+    return not (C_Secrets.ShouldUnitAuraIndexBeSecret and C_Secrets.ShouldUnitAuraIndexBeSecret(unit, index, "HELPFUL"))
+end
+
+-- Returns nil when the auras cannot be read
 local function IsDrinking(unit)
     for i = 1, 40 do
+        if not CanReadAura(unit, i) then
+            return nil
+        end
         local aura = C_UnitAuras.GetAuraDataByIndex(unit, i, "HELPFUL")
         if not aura or IsSecret(aura.spellId) then
             return false
@@ -266,6 +281,9 @@ function SoundClues:OnUnitAura(event, unit)
 
     local guid = UnitGUID(unit)
     local drinking = IsDrinking(unit)
+    if drinking == nil then
+        return
+    end
     local wasDrinking = drinkingHealers[guid]
     drinkingHealers[guid] = drinking or nil
 

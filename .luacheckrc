@@ -9,6 +9,7 @@ exclude_files = {
 -- WoW API, FrameXML and libraries
 read_globals = {
     "issecretvalue",
+    "C_Secrets",
     "C_UnitAuras",
     "GetNumGroupMembers",
     "GetNumSubgroupMembers",
