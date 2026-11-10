@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0](https://github.com/Kehet/Kehets_SoundClues/compare/1.5.1...1.6.0) (2026-11-10)
+
+
+### Features
+
+* load in World of Warcraft: Forever ([#25](https://github.com/Kehet/Kehets_SoundClues/issues/25)) ([91ab0e2](https://github.com/Kehet/Kehets_SoundClues/commit/91ab0e24533f8cc4066ba93e4bd58eaa10517d90))
+
 ## [1.5.1](https://github.com/Kehet/Kehets_SoundClues/compare/1.5.0...1.5.1) (2026-11-04)
 
 
