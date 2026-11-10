@@ -19,10 +19,11 @@ SoundClues:RegisterMessageTypes({
     },
 })
 
+-- FileDataIDs, because WoW: Forever cannot play game sounds by path
 local soundFiles = {
-    DAMAGER = "Sound\\interface\\iCreateCharacterA.ogg",
-    HEALER = "Sound\\Event Sounds\\Wisp\\WispPissed1.ogg",
-    TANK = "Sound\\interface\\igQuestFailed.ogg",
+    DAMAGER = 567522, -- sound/interface/icreatecharactera.ogg
+    HEALER = 567285, -- sound/event sounds/wisp/wisppissed1.ogg
+    TANK = 567459, -- sound/interface/igquestfailed.ogg
 }
 
 local DRINK_SPELL_ID = {
@@ -288,7 +289,7 @@ function SoundClues:OnUnitAura(event, unit)
     drinkingHealers[guid] = drinking or nil
 
     if drinking and not wasDrinking and not UnitAffectingCombat("player") then
-        PlaySoundFile("Sound\\Creature\\MillhouseManastorm\\TEMPEST_Millhouse_Drinks01.ogg", "Master")
+        PlaySoundFile(555334, "Master") -- sound/creature/millhousemanastorm/tempest_millhouse_drinks01.ogg
     end
 end
 
