@@ -1,4 +1,29 @@
-local SoundClues = LibStub("AceAddon-3.0"):NewAddon("Kehet's SoundClues", "AceConsole-3.0", "AceEvent-3.0", "LibKehetsVerbosity-1.0")
+local ADDON_NAME = ...
+
+-- The addon table. SoundClues.db is set when the saved variables are loaded.
+-- Chat lines start with a short name, coloured like "Kehet's" in the addon title.
+local SoundClues = { name = "Kehet's SoundClues", chatPrefix = "|cFF009900SoundClues|r: " }
+LibStub("LibKehetsVerbosity-2.0"):Embed(SoundClues, function() return SoundClues.db end)
+
+-- Event handlers by event name. A handler is a method name, called as self[handler](self, event, ...).
+local eventHandlers = {}
+local eventFrame = CreateFrame("Frame")
+eventFrame:SetScript("OnEvent", function(_, event, ...)
+    local handler = eventHandlers[event]
+    if handler then
+        SoundClues[handler](SoundClues, event, ...)
+    end
+end)
+
+function SoundClues:RegisterEvent(event, handler)
+    eventHandlers[event] = handler
+    eventFrame:RegisterEvent(event)
+end
+
+function SoundClues:UnregisterEvent(event)
+    eventHandlers[event] = nil
+    eventFrame:UnregisterEvent(event)
+end
 
 -- Messages the player can turn off or move in the Messages settings
 SoundClues:RegisterMessageTypes({
@@ -43,15 +68,9 @@ function SoundClues:OnEnable()
     self:RegisterEvent("UNIT_HEALTH", "OnUnitHealth")
     self:RegisterEvent("GROUP_ROSTER_UPDATE", "OnGroupRosterUpdate")
     self:OnGroupRosterUpdate()
-    if self.db.profile.drinkingActive then
+    if self.db.drinkingActive then
         self:RegisterEvent("UNIT_AURA", "OnUnitAura")
     end
-end
-
-function SoundClues:OnDisable()
-    self:UnregisterEvent("UNIT_HEALTH")
-    self:UnregisterEvent("GROUP_ROSTER_UPDATE")
-    self:UnregisterEvent("UNIT_AURA")
 end
 
 local function ColorName(name, className)
@@ -135,13 +154,13 @@ function SoundClues:OnMemberDied(unit)
 
             local shouldPlaySound = false
 
-            if role == "TANK" and self.db.profile.tankActive then
+            if role == "TANK" and self.db.tankActive then
                 shouldPlaySound = true
-            elseif role == "HEALER" and self.db.profile.healerActive then
+            elseif role == "HEALER" and self.db.healerActive then
                 shouldPlaySound = true
-            elseif role == "DAMAGER" and self.db.profile.dpsActive then
+            elseif role == "DAMAGER" and self.db.dpsActive then
                 shouldPlaySound = true
-            elseif (not role or not soundFiles[role]) and self.db.profile.unknownActive then
+            elseif (not role or not soundFiles[role]) and self.db.unknownActive then
                 shouldPlaySound = true
             end
 
@@ -219,7 +238,7 @@ function SoundClues:OnGroupRosterUpdate()
 end
 
 function SoundClues:IsLeaveAlertWanted()
-    local profile = self.db.profile
+    local profile = self.db
 
     if UnitAffectingCombat("player") then
         if not profile.leaveInCombat then
@@ -293,171 +312,206 @@ function SoundClues:OnUnitAura(event, unit)
     end
 end
 
-local options = {
-    name = "Kehet's SoundClues",
-    handler = SoundClues,
-    type = "group",
-    args = {
-        tankActive = {
-            type = "toggle",
-            name = "Enable death alert for tank",
-            get = "IsTankActive",
-            set = "ToggleTankActive",
-            width = "full"
-        },
-        healerActive = {
-            type = "toggle",
-            name = "Enable death alert for healer",
-            get = "IsHealerActive",
-            set = "ToggleHealerActive",
-            width = "full"
-        },
-        dpsActive = {
-            type = "toggle",
-            name = "Enable death alert for DPS",
-            get = "IsDpsActive",
-            set = "ToggleDpsActive",
-            width = "full"
-        },
-        unknownActive = {
-            type = "toggle",
-            name = "Enable death alert for unknown roles",
-            get = "IsUnknownActive",
-            set = "ToggleUnknownActive",
-            width = "full"
-        },
-        drinkingActive = {
-            type = "toggle",
-            name = "Enable healer drinking alert",
-            get = "IsDrinkingActive",
-            set = "ToggleDrinkingActive",
-            width = "full"
-        },
-        leave = {
-            type = "group",
-            name = "Alert when a player leaves the group",
-            inline = true,
-            order = 150,
-            get = "GetLeaveOption",
-            set = "SetLeaveOption",
-            args = {
-                leaveInCombat = {
-                    type = "toggle",
-                    name = "In combat",
-                    order = 1,
-                },
-                leaveOutOfCombat = {
-                    type = "toggle",
-                    name = "Out of combat",
-                    order = 2,
-                },
-                leaveParty = {
-                    type = "toggle",
-                    name = "In a party",
-                    order = 3,
-                },
-                leaveRaid = {
-                    type = "toggle",
-                    name = "In a raid",
-                    order = 4,
-                },
-                leaveBattleground = {
-                    type = "toggle",
-                    name = "In a battleground or arena",
-                    order = 5,
-                    width = "double",
-                },
-            },
-        },
-    },
+local defaults = {
+    tankActive = true,
+    healerActive = true,
+    dpsActive = true,
+    unknownActive = true,
+    drinkingActive = true,
+    leaveInCombat = true,
+    leaveOutOfCombat = true,
+    leaveParty = true,
+    leaveRaid = true,
+    leaveBattleground = true,
 }
 
-options.args.messages = SoundClues:GetMessageOptions()
-options.args.messages.inline = true
-options.args.messages.order = 200
-
-function SoundClues:IsTankActive(info)
-    return self.db.profile.tankActive
+-- Versions up to 1.6.0 saved an AceDB-3.0 database with all characters on the shared "Default" profile.
+-- The addon reads and writes that profile in place, so an older version still reads the settings.
+local function LoadDB()
+    if type(SoundCluesDB) ~= "table" then
+        SoundCluesDB = {}
+    end
+    if type(SoundCluesDB.profiles) ~= "table" then
+        SoundCluesDB.profiles = {}
+    end
+    if type(SoundCluesDB.profiles.Default) ~= "table" then
+        SoundCluesDB.profiles.Default = {}
+    end
+    local profile = SoundCluesDB.profiles.Default
+    for key, value in pairs(defaults) do
+        if profile[key] == nil then
+            profile[key] = value
+        end
+    end
+    return profile
 end
 
-function SoundClues:ToggleTankActive(info, value)
-    self.db.profile.tankActive = value
-end
-
-function SoundClues:IsHealerActive(info)
-    return self.db.profile.healerActive
-end
-
-function SoundClues:ToggleHealerActive(info, value)
-    self.db.profile.healerActive = value
-end
-
-function SoundClues:IsDpsActive(info)
-    return self.db.profile.dpsActive
-end
-
-function SoundClues:ToggleDpsActive(info, value)
-    self.db.profile.dpsActive = value
-end
-
-function SoundClues:IsUnknownActive(info)
-    return self.db.profile.unknownActive
-end
-
-function SoundClues:ToggleUnknownActive(info, value)
-    self.db.profile.unknownActive = value
-end
-
-function SoundClues:IsDrinkingActive(info)
-    return self.db.profile.drinkingActive
-end
-
-function SoundClues:ToggleDrinkingActive(info, value)
-    self.db.profile.drinkingActive = value
-    if value then
-        self:RegisterEvent("UNIT_AURA", "OnUnitAura")
-    else
-        self:UnregisterEvent("UNIT_AURA")
+function SoundClues:SetOption(key, value)
+    self.db[key] = value
+    if key == "drinkingActive" then
+        if value then
+            self:RegisterEvent("UNIT_AURA", "OnUnitAura")
+        else
+            self:UnregisterEvent("UNIT_AURA")
+        end
     end
 end
 
--- The leave toggles share these, keyed by the option name
-function SoundClues:GetLeaveOption(info)
-    return self.db.profile[info[#info]]
-end
+local DISPLAY_NAME = "Kehet's SoundClues"
 
-function SoundClues:SetLeaveOption(info, value)
-    self.db.profile[info[#info]] = value
-end
-
-local defaults = {
-    profile = {
-        tankActive = true,
-        healerActive = true,
-        dpsActive = true,
-        unknownActive = true,
-        drinkingActive = true,
-        leaveInCombat = true,
-        leaveOutOfCombat = true,
-        leaveParty = true,
-        leaveRaid = true,
-        leaveBattleground = true,
+-- The settings page, by section. Each option is a check box for the saved value of the same key.
+local SECTIONS = {
+    {
+        title = "Death alerts",
+        options = {
+            { key = "tankActive", name = "Tank", desc = "Play the quest failed sound when a tank dies." },
+            { key = "healerActive", name = "Healer", desc = "Play the angry wisp sound when a healer dies." },
+            { key = "dpsActive", name = "DPS", desc = "Play the character creation sound when a DPS dies." },
+            { key = "unknownActive", name = "No assigned role", desc = "Play the character creation sound when a player with no assigned role dies." },
+        },
+    },
+    {
+        title = "Healer drinking alert",
+        options = {
+            { key = "drinkingActive", name = "Healer starts to drink", desc = "Play Millhouse Manastorm's drinking line when the healer starts to drink, while you are out of combat." },
+        },
+    },
+    {
+        title = "Leave alert",
+        options = {
+            { key = "leaveInCombat", name = "In combat", desc = "Alert when a player leaves while you are in combat." },
+            { key = "leaveOutOfCombat", name = "Out of combat", desc = "Alert when a player leaves while you are out of combat." },
+            { key = "leaveParty", name = "In a party", desc = "Alert when a player leaves your party." },
+            { key = "leaveRaid", name = "In a raid", desc = "Alert when a player leaves your raid." },
+            { key = "leaveBattleground", name = "In a battleground or arena", desc = "Alert when a player leaves your battleground or arena group." },
+        },
     },
 }
 
+local category
+local page
+
+-- Clients with proxy settings get the native list of the game settings
+local function RegisterNativePage()
+    local layout
+    category, layout = Settings.RegisterVerticalLayoutCategory(DISPLAY_NAME)
+    for _, section in ipairs(SECTIONS) do
+        layout:AddInitializer(CreateSettingsListSectionHeaderInitializer(section.title))
+        for _, option in ipairs(section.options) do
+            local key = option.key
+            local setting = Settings.RegisterProxySetting(category, "KEHETS_SOUNDCLUES_" .. key:upper(),
+                Settings.VarType.Boolean, option.name, defaults[key],
+                function() return SoundClues.db[key] end,
+                function(value) SoundClues:SetOption(key, value) end)
+            Settings.CreateCheckbox(category, setting, option.desc)
+        end
+    end
+    Settings.RegisterAddOnCategory(category)
+end
+
+local function CreateCheckbox(parent, option)
+    local check = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+    check:SetSize(26, 26)
+    check.label = check:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    check.label:SetPoint("LEFT", check, "RIGHT", 2, 0)
+    check.label:SetText(option.name)
+    check:SetScript("OnClick", function(self)
+        SoundClues:SetOption(option.key, self:GetChecked() and true or false)
+    end)
+    check:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:SetText(option.name, 1, 1, 1)
+        GameTooltip:AddLine(option.desc, nil, nil, nil, true)
+        GameTooltip:Show()
+    end)
+    check:SetScript("OnLeave", GameTooltip_Hide)
+    return check
+end
+
+local function BuildCanvasPage()
+    local title = page:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText(DISPLAY_NAME)
+
+    page.checks = {}
+    local y = -52
+    for _, section in ipairs(SECTIONS) do
+        local header = page:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+        header:SetPoint("TOPLEFT", 16, y)
+        header:SetText(section.title)
+        y = y - 18
+        for _, option in ipairs(section.options) do
+            local check = CreateCheckbox(page, option)
+            check:SetPoint("TOPLEFT", 12, y)
+            page.checks[option.key] = check
+            y = y - 26
+        end
+        y = y - 16
+    end
+end
+
+-- Clients without proxy settings get a page of check boxes
+local function RegisterCanvasPage()
+    page = CreateFrame("Frame")
+    page.name = DISPLAY_NAME
+    page:SetScript("OnShow", function()
+        if not page.checks then
+            BuildCanvasPage()
+        end
+        for key, check in pairs(page.checks) do
+            check:SetChecked(SoundClues.db[key] and true or false)
+        end
+    end)
+
+    if Settings and Settings.RegisterCanvasLayoutCategory then
+        category = Settings.RegisterCanvasLayoutCategory(page, DISPLAY_NAME)
+        Settings.RegisterAddOnCategory(category)
+    elseif InterfaceOptions_AddCategory then
+        InterfaceOptions_AddCategory(page)
+    end
+end
+
+function SoundClues:OpenOptions()
+    if category and Settings and Settings.OpenToCategory then
+        Settings.OpenToCategory(category:GetID())
+    elseif InterfaceOptionsFrame_OpenToCategory then
+        InterfaceOptionsFrame_OpenToCategory(page)
+    end
+end
+
 function SoundClues:OnInitialize()
-    self.db = LibStub("AceDB-3.0"):New("SoundCluesDB", defaults, true)
-    LibStub("AceConfig-3.0"):RegisterOptionsTable("SoundClues", options)
-    self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("SoundClues", "Kehet's SoundClues")
-    self:RegisterChatCommand("sc", "SlashCommand")
-    self:RegisterChatCommand("soundclues", "SlashCommand")
+    self.db = LoadDB()
+    if Settings and Settings.RegisterVerticalLayoutCategory and Settings.RegisterProxySetting then
+        RegisterNativePage()
+    else
+        RegisterCanvasPage()
+    end
+    self:RegisterMessagePage(category)
+
+    SLASH_KEHETSSOUNDCLUES1 = "/sc"
+    SLASH_KEHETSSOUNDCLUES2 = "/soundclues"
+    SlashCmdList.KEHETSSOUNDCLUES = function(msg) self:SlashCommand(msg) end
 end
 
 function SoundClues:SlashCommand(msg)
-    if not msg or msg:trim() == "" then
-        -- Settings.OpenToCategory is protected on this client, so open a standalone window instead
-        LibStub("AceConfigDialog-3.0"):Open("SoundClues")
+    if not msg or strtrim(msg) == "" then
+        self:OpenOptions()
     else
         self:Print("hello there!")
     end
 end
+
+function SoundClues:OnAddonLoaded(event, name)
+    if name == ADDON_NAME then
+        self:UnregisterEvent("ADDON_LOADED")
+        self:OnInitialize()
+    end
+end
+
+function SoundClues:OnPlayerLogin()
+    self:UnregisterEvent("PLAYER_LOGIN")
+    self:OnEnable()
+end
+
+SoundClues:RegisterEvent("ADDON_LOADED", "OnAddonLoaded")
+SoundClues:RegisterEvent("PLAYER_LOGIN", "OnPlayerLogin")

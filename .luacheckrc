@@ -6,20 +6,36 @@ exclude_files = {
     "Libs/**",
 }
 
+-- Saved variables and slash command registrations
+globals = {
+    "SLASH_KEHETSSOUNDCLUES1",
+    "SLASH_KEHETSSOUNDCLUES2",
+    "SlashCmdList",
+    "SoundCluesDB",
+}
+
 -- WoW API, FrameXML and libraries
 read_globals = {
     "issecretvalue",
     "C_Secrets",
     "C_UnitAuras",
+    "CreateFrame",
+    "CreateSettingsListSectionHeaderInitializer",
+    "GameTooltip",
+    "GameTooltip_Hide",
     "GetNumGroupMembers",
     "GetNumSubgroupMembers",
     "IsInGroup",
     "IsInInstance",
+    "InterfaceOptions_AddCategory",
+    "InterfaceOptionsFrame_OpenToCategory",
     "IsInRaid",
     "LibStub",
     "PlaySound",
     "PlaySoundFile",
     "RAID_CLASS_COLORS",
+    "Settings",
+    "strtrim",
     "tContains",
     "UnitAffectingCombat",
     "UnitClass",
