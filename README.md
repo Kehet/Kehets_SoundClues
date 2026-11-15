@@ -22,16 +22,16 @@ When the healer in your group starts to drink, the addon plays Millhouse Manasto
 
 When a player leaves your party or raid, or is removed from it, the addon prints their name in class color to chat, for example `Thrall has left the group.`, and plays the invite declined sound. Nothing plays when you leave the group yourself or the group disbands.
 
-The leave alert settings choose when the alert plays. The alert plays only when both of these allow it:
+The Player Leaves the Group setting turns the leave alert on or off. The settings under it choose when the alert plays. The alert plays only when both of these allow it:
 
-- Combat: In combat, Out of combat. Your own combat state counts.
-- Group type: In a party, In a raid, In a battleground or arena.
+- Combat: In Combat, Out of Combat. Your own combat state counts.
+- Group type: In a Party, In a Raid, In a Battleground or Arena.
 
 When the settings block the alert, the chat line does not show either.
 
 ## Settings
 
-Type `/sc` or `/soundclues` to open the settings window. You can also find the settings in Options > AddOns > Kehet's SoundClues.
+Type `/sc` or `/soundclues` to open the settings in Options > AddOns > Kehet's SoundClues.
 
 You can turn each alert on or off:
 
@@ -40,10 +40,11 @@ You can turn each alert on or off:
 - Death alert for DPS
 - Death alert for players with no assigned role
 - Healer drinking alert
+- Leave alert
 
 All alerts are on by default.
 
-The Messages group has the login message, the death messages and the leave messages in chat. Each message has these settings:
+The Messages page under Kehet's SoundClues has the login message, the death messages and the leave messages in chat. Each message has these settings:
 
 - Show: turn the message on or off.
 - Show in: one or more of the chat windows, the error frame, the raid warning frame, the boss emote frame and the floating combat text. Parrot, MikScrollingBattleText, BigWigs and DBM outputs are listed while those addons are loaded.
@@ -55,7 +56,7 @@ Mute all messages turns all of them off. Answers to slash commands always print.
 - World of Warcraft: Mists of Pandaria Classic
 - World of Warcraft: Classic Era
 - World of Warcraft: Forever
-- The [Ace3](https://www.curseforge.com/wow/addons/ace3) addon
+- No other addons. The packaged release includes its libraries.
 
 ## License
 
