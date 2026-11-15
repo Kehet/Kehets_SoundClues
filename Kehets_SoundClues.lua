@@ -25,30 +25,59 @@ function SoundClues:UnregisterEvent(event)
     eventFrame:UnregisterEvent(event)
 end
 
--- Messages the player can turn off or move in the Messages settings
+-- The sounds are FileDataIDs, because WoW: Forever cannot play game sounds by path.
+-- The leave sound is SOUNDKIT.IG_PLAYER_INVITE_DECLINE, which is missing from the SOUNDKIT table on this client.
+-- Each alert is its own message type, so the player turns its line and its sound on or off in the
+-- Messages settings.
 SoundClues:RegisterMessageTypes({
     banner = {
         name = "Login message",
         desc = "The line that says the addon is enabled.",
         order = 1,
     },
-    death = {
-        name = "Death messages",
-        desc = "The line that says which group member died. The death alert sounds have their own settings.",
+    tankDeath = {
+        name = "Tank death",
+        desc = "The line and the quest failed sound when a tank dies.",
         order = 2,
+        sound = { file = 567459 }, -- sound/interface/igquestfailed.ogg
+    },
+    healerDeath = {
+        name = "Healer death",
+        desc = "The line and the angry wisp sound when a healer dies.",
+        order = 3,
+        sound = { file = 567285 }, -- sound/event sounds/wisp/wisppissed1.ogg
+    },
+    dpsDeath = {
+        name = "DPS death",
+        desc = "The line and the character creation sound when a DPS dies.",
+        order = 4,
+        sound = { file = 567522 }, -- sound/interface/icreatecharactera.ogg
+    },
+    unknownDeath = {
+        name = "No assigned role death",
+        desc = "The line and the character creation sound when a player with no assigned role dies.",
+        order = 5,
+        sound = { file = 567522 }, -- sound/interface/icreatecharactera.ogg
     },
     leave = {
-        name = "Leave messages",
-        desc = "The line that says which player left the group. It shows only when the leave alert settings allow the alert.",
-        order = 3,
+        name = "Player leaves the group",
+        desc = "The line and the invite declined sound when a player leaves your group or is removed from it. The Leave Alert settings choose when.",
+        order = 6,
+        sound = { kit = 882 },
+    },
+    drinking = {
+        name = "Healer starts to drink",
+        desc = "The line and Millhouse Manastorm's drinking line when the healer starts to drink, while you are out of combat.",
+        order = 7,
+        sound = { file = 555334 }, -- sound/creature/millhousemanastorm/tempest_millhouse_drinks01.ogg
     },
 })
 
--- FileDataIDs, because WoW: Forever cannot play game sounds by path
-local soundFiles = {
-    DAMAGER = 567522, -- sound/interface/icreatecharactera.ogg
-    HEALER = 567285, -- sound/event sounds/wisp/wisppissed1.ogg
-    TANK = 567459, -- sound/interface/igquestfailed.ogg
+-- The message type of a death, by the role of the member who died
+local DEATH_TYPES = {
+    TANK = "tankDeath",
+    HEALER = "healerDeath",
+    DAMAGER = "dpsDeath",
 }
 
 local DRINK_SPELL_ID = {
@@ -68,9 +97,7 @@ function SoundClues:OnEnable()
     self:RegisterEvent("UNIT_HEALTH", "OnUnitHealth")
     self:RegisterEvent("GROUP_ROSTER_UPDATE", "OnGroupRosterUpdate")
     self:OnGroupRosterUpdate()
-    if self.db.drinkingActive then
-        self:RegisterEvent("UNIT_AURA", "OnUnitAura")
-    end
+    self:RegisterEvent("UNIT_AURA", "OnUnitAura")
 end
 
 local function ColorName(name, className)
@@ -150,27 +177,7 @@ function SoundClues:OnMemberDied(unit)
             end
 
             local message = string.format("%s (%s) has died!", coloredName, roleText)
-            self:Notify("death", message)
-
-            local shouldPlaySound = false
-
-            if role == "TANK" and self.db.tankActive then
-                shouldPlaySound = true
-            elseif role == "HEALER" and self.db.healerActive then
-                shouldPlaySound = true
-            elseif role == "DAMAGER" and self.db.dpsActive then
-                shouldPlaySound = true
-            elseif (not role or not soundFiles[role]) and self.db.unknownActive then
-                shouldPlaySound = true
-            end
-
-            if shouldPlaySound then
-                if role and soundFiles[role] then
-                    PlaySoundFile(soundFiles[role], "Master")
-                else
-                    PlaySoundFile(soundFiles["DAMAGER"], "Master")
-                end
-            end
+            self:Notify(DEATH_TYPES[role] or "unknownDeath", message)
         end
     end
 end
@@ -223,23 +230,16 @@ function SoundClues:OnGroupRosterUpdate()
         return
     end
 
-    local someoneLeft = false
     for guid, member in pairs(previous) do
         if not roster[guid] then
-            someoneLeft = true
             self:Notify("leave", string.format("%s has left the group.", ColorName(member.name, member.className)))
         end
-    end
-
-    if someoneLeft then
-        -- SOUNDKIT.IG_PLAYER_INVITE_DECLINE, which is missing from the SOUNDKIT table on this client
-        PlaySound(882, "Master")
     end
 end
 
 function SoundClues:IsLeaveAlertWanted()
     local profile = self.db
-    if not profile.leaveActive then
+    if not self:IsMessageShown("leave") then
         return false
     end
 
@@ -292,6 +292,9 @@ local function IsDrinking(unit)
 end
 
 function SoundClues:OnUnitAura(event, unit)
+    if not self:IsMessageShown("drinking") then
+        return
+    end
     -- UNIT_AURA also fires for tokens like targettarget, whose role is a secret value in WoW: Forever
     if not IsGroupUnit(unit) or not (UnitInParty(unit) or UnitInRaid(unit)) then
         return
@@ -311,17 +314,12 @@ function SoundClues:OnUnitAura(event, unit)
     drinkingHealers[guid] = drinking or nil
 
     if drinking and not wasDrinking and not UnitAffectingCombat("player") then
-        PlaySoundFile(555334, "Master") -- sound/creature/millhousemanastorm/tempest_millhouse_drinks01.ogg
+        local _, className = UnitClass(unit)
+        self:Notify("drinking", string.format("%s (Healer) is drinking.", ColorName(UnitName(unit), className)))
     end
 end
 
 local defaults = {
-    tankActive = true,
-    healerActive = true,
-    dpsActive = true,
-    unknownActive = true,
-    drinkingActive = true,
-    leaveActive = true,
     leaveInCombat = true,
     leaveOutOfCombat = true,
     leaveParty = true,
@@ -352,12 +350,65 @@ end
 
 function SoundClues:SetOption(key, value)
     self.db[key] = value
-    if key == "drinkingActive" then
-        if value then
-            self:RegisterEvent("UNIT_AURA", "OnUnitAura")
-        else
-            self:UnregisterEvent("UNIT_AURA")
+end
+
+-- Version 1.6.0 and older had one death message type, and its own check boxes for each sound:
+-- tankActive, healerActive, dpsActive, unknownActive, drinkingActive and leaveActive. They are carried
+-- over to the message types once, and left in place so an older version still reads them.
+local OLD_DEATH_SOUNDS = {
+    tankActive = "tankDeath",
+    healerActive = "healerDeath",
+    dpsActive = "dpsDeath",
+    unknownActive = "unknownDeath",
+}
+
+local function CopyOutputs(outputs)
+    local copy = {}
+    for output, on in pairs(outputs or {}) do
+        copy[output] = on
+    end
+    return copy
+end
+
+function SoundClues:MigrateSounds()
+    local profile = self.db
+    if profile.soundTypesMigrated then
+        return
+    end
+    profile.soundTypesMigrated = true
+
+    local internal = LibStub("LibKehetsVerbosity-2.0").internal
+    local types = profile.verbosity and profile.verbosity.types or {}
+
+    -- The old death line had its own switch and outputs, apart from the sounds. A death with its line
+    -- off but its sound on is shown nowhere, so only the sound plays.
+    local oldDeath = types.death
+    for oldKey, key in pairs(OLD_DEATH_SOUNDS) do
+        local textOn = not (oldDeath and oldDeath.shown == false)
+        local soundOn = profile[oldKey] ~= false
+        if oldDeath and oldDeath.outputs then
+            internal.SetSetting(self, key, "outputs", CopyOutputs(oldDeath.outputs))
         end
+        if not textOn and not soundOn then
+            self:SetMessageShown(key, false)
+        elseif not textOn then
+            internal.SetSetting(self, key, "outputs", {})
+        elseif not soundOn then
+            self:SetMessageSound(key, false)
+        end
+    end
+
+    -- The leave line had its own switch too, and the sound followed leaveActive
+    local leaveTextOn = not (types.leave and types.leave.shown == false)
+    if profile.leaveActive == false then
+        self:SetMessageShown("leave", false)
+    elseif not leaveTextOn then
+        self:SetMessageShown("leave", true)
+        internal.SetSetting(self, "leave", "outputs", {})
+    end
+
+    if profile.drinkingActive == false then
+        self:SetMessageShown("drinking", false)
     end
 end
 
@@ -368,29 +419,14 @@ local DISPLAY_NAME = "Kehet's SoundClues"
 -- Names and headers are in Title Case, like the game's own settings.
 local SECTIONS = {
     {
-        title = "Death Alerts",
-        options = {
-            { key = "tankActive", name = "Tank", desc = "Play the quest failed sound when a tank dies." },
-            { key = "healerActive", name = "Healer", desc = "Play the angry wisp sound when a healer dies." },
-            { key = "dpsActive", name = "DPS", desc = "Play the character creation sound when a DPS dies." },
-            { key = "unknownActive", name = "No Assigned Role", desc = "Play the character creation sound when a player with no assigned role dies." },
-        },
-    },
-    {
-        title = "Healer Drinking Alert",
-        options = {
-            { key = "drinkingActive", name = "Healer Starts to Drink", desc = "Play Millhouse Manastorm's drinking line when the healer starts to drink, while you are out of combat." },
-        },
-    },
-    {
+        -- The leave alert itself, and its sound, are turned on or off in the Messages settings
         title = "Leave Alert",
         options = {
-            { key = "leaveActive", name = "Player Leaves the Group", desc = "Play the invite declined sound when a player leaves your group or is removed from it. The settings below choose when." },
-            { key = "leaveInCombat", parent = "leaveActive", name = "In Combat", desc = "Alert when a player leaves while you are in combat." },
-            { key = "leaveOutOfCombat", parent = "leaveActive", name = "Out of Combat", desc = "Alert when a player leaves while you are out of combat." },
-            { key = "leaveParty", parent = "leaveActive", name = "In a Party", desc = "Alert when a player leaves your party." },
-            { key = "leaveRaid", parent = "leaveActive", name = "In a Raid", desc = "Alert when a player leaves your raid." },
-            { key = "leaveBattleground", parent = "leaveActive", name = "In a Battleground or Arena", desc = "Alert when a player leaves your battleground or arena group." },
+            { key = "leaveInCombat", name = "In Combat", desc = "Alert when a player leaves while you are in combat." },
+            { key = "leaveOutOfCombat", name = "Out of Combat", desc = "Alert when a player leaves while you are out of combat." },
+            { key = "leaveParty", name = "In a Party", desc = "Alert when a player leaves your party." },
+            { key = "leaveRaid", name = "In a Raid", desc = "Alert when a player leaves your raid." },
+            { key = "leaveBattleground", name = "In a Battleground or Arena", desc = "Alert when a player leaves your battleground or arena group." },
         },
     },
 }
@@ -510,6 +546,7 @@ end
 
 function SoundClues:OnInitialize()
     self.db = LoadDB()
+    self:MigrateSounds()
     if Settings and Settings.RegisterVerticalLayoutCategory and Settings.RegisterProxySetting then
         RegisterNativePage()
     else
