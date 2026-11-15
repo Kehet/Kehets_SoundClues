@@ -16,13 +16,13 @@ Feign Death does not trigger an alert.
 
 ## Healer drinking alert
 
-When the healer in your group starts to drink, the addon plays Millhouse Manastorm's drinking line. The sound plays once per drink, and only when you are out of combat.
+When the healer in your group starts to drink, the addon prints their name in class color to chat, for example `Jaina (Healer) is drinking.`, and plays Millhouse Manastorm's drinking line. The alert comes once per drink, and only when you are out of combat.
 
 ## Leave alert
 
 When a player leaves your party or raid, or is removed from it, the addon prints their name in class color to chat, for example `Thrall has left the group.`, and plays the invite declined sound. Nothing plays when you leave the group yourself or the group disbands.
 
-The Player Leaves the Group setting turns the leave alert on or off. The settings under it choose when the alert plays. The alert plays only when both of these allow it:
+The Player leaves the group message on the Messages page turns the leave alert on or off. The Leave Alert settings choose when the alert plays. The alert plays only when both of these allow it:
 
 - Combat: In Combat, Out of Combat. Your own combat state counts.
 - Group type: In a Party, In a Raid, In a Battleground or Arena.
@@ -33,23 +33,25 @@ When the settings block the alert, the chat line does not show either.
 
 Type `/sc` or `/soundclues` to open the settings in Options > AddOns > Kehet's SoundClues.
 
-You can turn each alert on or off:
+The main page has the Leave Alert settings. The Messages page under it has a message for each alert, and the login message:
 
-- Death alert for tanks
-- Death alert for healers
-- Death alert for DPS
-- Death alert for players with no assigned role
-- Healer drinking alert
-- Leave alert
+- Login message
+- Tank death
+- Healer death
+- DPS death
+- No assigned role death
+- Player leaves the group
+- Healer starts to drink
 
-All alerts are on by default.
+All alerts are on by default. Each message has these settings:
 
-The Messages page under Kehet's SoundClues has the login message, the death messages and the leave messages in chat. Each message has these settings:
+- Enable: turn the alert on or off, with its line and its sound.
+- Play sound: turn the sound off to keep only the line.
+- Show in: one or more of the chat windows, the error frame, the raid warning frame, the boss emote frame and the floating combat text. Parrot, MikScrollingBattleText, BigWigs and DBM outputs are listed while those addons are loaded. Untick all of them to keep only the sound.
 
-- Show: turn the message on or off.
-- Show in: one or more of the chat windows, the error frame, the raid warning frame, the boss emote frame and the floating combat text. Parrot, MikScrollingBattleText, BigWigs and DBM outputs are listed while those addons are loaded.
+Mute all messages turns off every alert and its sound. Answers to slash commands always print.
 
-Mute all messages turns all of them off. Answers to slash commands always print.
+Settings from version 1.6.0 and older are carried over when you first load this version.
 
 ## Requirements
 
