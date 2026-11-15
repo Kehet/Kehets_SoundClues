@@ -469,6 +469,8 @@ end
 -- Clients without proxy settings get a page of check boxes
 local function RegisterCanvasPage()
     page = CreateFrame("Frame")
+    -- An unparented frame starts shown, so the settings panel's first Show() would not fire OnShow
+    page:Hide()
     page.name = DISPLAY_NAME
     function page:Refresh()
         local db = SoundClues.db
