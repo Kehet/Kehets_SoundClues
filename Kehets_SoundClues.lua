@@ -239,6 +239,9 @@ end
 
 function SoundClues:IsLeaveAlertWanted()
     local profile = self.db
+    if not profile.leaveActive then
+        return false
+    end
 
     if UnitAffectingCombat("player") then
         if not profile.leaveInCombat then
@@ -318,6 +321,7 @@ local defaults = {
     dpsActive = true,
     unknownActive = true,
     drinkingActive = true,
+    leaveActive = true,
     leaveInCombat = true,
     leaveOutOfCombat = true,
     leaveParty = true,
@@ -360,30 +364,33 @@ end
 local DISPLAY_NAME = "Kehet's SoundClues"
 
 -- The settings page, by section. Each option is a check box for the saved value of the same key.
+-- An option with a parent is indented under it and has no effect while the parent is off.
+-- Names and headers are in Title Case, like the game's own settings.
 local SECTIONS = {
     {
-        title = "Death alerts",
+        title = "Death Alerts",
         options = {
             { key = "tankActive", name = "Tank", desc = "Play the quest failed sound when a tank dies." },
             { key = "healerActive", name = "Healer", desc = "Play the angry wisp sound when a healer dies." },
             { key = "dpsActive", name = "DPS", desc = "Play the character creation sound when a DPS dies." },
-            { key = "unknownActive", name = "No assigned role", desc = "Play the character creation sound when a player with no assigned role dies." },
+            { key = "unknownActive", name = "No Assigned Role", desc = "Play the character creation sound when a player with no assigned role dies." },
         },
     },
     {
-        title = "Healer drinking alert",
+        title = "Healer Drinking Alert",
         options = {
-            { key = "drinkingActive", name = "Healer starts to drink", desc = "Play Millhouse Manastorm's drinking line when the healer starts to drink, while you are out of combat." },
+            { key = "drinkingActive", name = "Healer Starts to Drink", desc = "Play Millhouse Manastorm's drinking line when the healer starts to drink, while you are out of combat." },
         },
     },
     {
-        title = "Leave alert",
+        title = "Leave Alert",
         options = {
-            { key = "leaveInCombat", name = "In combat", desc = "Alert when a player leaves while you are in combat." },
-            { key = "leaveOutOfCombat", name = "Out of combat", desc = "Alert when a player leaves while you are out of combat." },
-            { key = "leaveParty", name = "In a party", desc = "Alert when a player leaves your party." },
-            { key = "leaveRaid", name = "In a raid", desc = "Alert when a player leaves your raid." },
-            { key = "leaveBattleground", name = "In a battleground or arena", desc = "Alert when a player leaves your battleground or arena group." },
+            { key = "leaveActive", name = "Player Leaves the Group", desc = "Play the invite declined sound when a player leaves your group or is removed from it. The settings below choose when." },
+            { key = "leaveInCombat", parent = "leaveActive", name = "In Combat", desc = "Alert when a player leaves while you are in combat." },
+            { key = "leaveOutOfCombat", parent = "leaveActive", name = "Out of Combat", desc = "Alert when a player leaves while you are out of combat." },
+            { key = "leaveParty", parent = "leaveActive", name = "In a Party", desc = "Alert when a player leaves your party." },
+            { key = "leaveRaid", parent = "leaveActive", name = "In a Raid", desc = "Alert when a player leaves your raid." },
+            { key = "leaveBattleground", parent = "leaveActive", name = "In a Battleground or Arena", desc = "Alert when a player leaves your battleground or arena group." },
         },
     },
 }
@@ -395,6 +402,7 @@ local page
 local function RegisterNativePage()
     local layout
     category, layout = Settings.RegisterVerticalLayoutCategory(DISPLAY_NAME)
+    local initializers = {}
     for _, section in ipairs(SECTIONS) do
         layout:AddInitializer(CreateSettingsListSectionHeaderInitializer(section.title))
         for _, option in ipairs(section.options) do
@@ -403,7 +411,13 @@ local function RegisterNativePage()
                 Settings.VarType.Boolean, option.name, defaults[key],
                 function() return SoundClues.db[key] end,
                 function(value) SoundClues:SetOption(key, value) end)
-            Settings.CreateCheckbox(category, setting, option.desc)
+            local initializer = Settings.CreateCheckbox(category, setting, option.desc)
+            initializers[key] = initializer
+            local parent = option.parent
+            if parent then
+                initializer:Indent()
+                initializer:SetParentInitializer(initializers[parent], function() return SoundClues.db[parent] end)
+            end
         end
     end
     Settings.RegisterAddOnCategory(category)
@@ -417,6 +431,7 @@ local function CreateCheckbox(parent, option)
     check.label:SetText(option.name)
     check:SetScript("OnClick", function(self)
         SoundClues:SetOption(option.key, self:GetChecked() and true or false)
+        parent:Refresh()
     end)
     check:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -442,7 +457,8 @@ local function BuildCanvasPage()
         y = y - 18
         for _, option in ipairs(section.options) do
             local check = CreateCheckbox(page, option)
-            check:SetPoint("TOPLEFT", 12, y)
+            check:SetPoint("TOPLEFT", option.parent and 32 or 12, y)
+            check.parentKey = option.parent
             page.checks[option.key] = check
             y = y - 26
         end
@@ -454,13 +470,24 @@ end
 local function RegisterCanvasPage()
     page = CreateFrame("Frame")
     page.name = DISPLAY_NAME
+    function page:Refresh()
+        local db = SoundClues.db
+        for key, check in pairs(self.checks) do
+            local disabled = check.parentKey and not db[check.parentKey]
+            check:SetChecked(db[key] and true or false)
+            check:SetEnabled(not disabled)
+            if disabled then
+                check.label:SetTextColor(0.5, 0.5, 0.5)
+            else
+                check.label:SetTextColor(1, 1, 1)
+            end
+        end
+    end
     page:SetScript("OnShow", function()
         if not page.checks then
             BuildCanvasPage()
         end
-        for key, check in pairs(page.checks) do
-            check:SetChecked(SoundClues.db[key] and true or false)
-        end
+        page:Refresh()
     end)
 
     if Settings and Settings.RegisterCanvasLayoutCategory then
