@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.7.0](https://github.com/Kehet/Kehets_SoundClues/compare/1.6.0...1.7.0) (2026-11-15)
+
+
+### Features
+
+* drop the Ace3 dependency ([#27](https://github.com/Kehet/Kehets_SoundClues/issues/27)) ([03c2646](https://github.com/Kehet/Kehets_SoundClues/commit/03c264665d640326e5f3d2243f8a6a2138f17d7b))
+* give each alert its own message type and sound ([#30](https://github.com/Kehet/Kehets_SoundClues/issues/30)) ([28f5fe9](https://github.com/Kehet/Kehets_SoundClues/commit/28f5fe983e514cd4672cfa674dc57f25991fe86a))
+
+
+### Bug Fixes
+
+* **options:** build the settings page on the first open ([#29](https://github.com/Kehet/Kehets_SoundClues/issues/29)) ([b648bf8](https://github.com/Kehet/Kehets_SoundClues/commit/b648bf8dfc13931832eedb901b2b41a437ff0faa))
+
 ## [1.6.0](https://github.com/Kehet/Kehets_SoundClues/compare/1.5.1...1.6.0) (2026-11-10)
 
 
